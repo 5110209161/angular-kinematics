@@ -5,6 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 import * as TWEEN from '@tweenjs/tween.js';
 import * as THREE from 'three';
+import { GUI } from 'dat.gui';
 
 @Component({
   selector: 'app-colla-robot',
@@ -37,10 +38,19 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
   private nearClippingPane: number = 1;
   private farClippingPane: number = 2000;
 
-  /** light */
-
   /** grid */
   private showGrid: boolean = true;
+
+  /** target control */
+  private posTarget = {
+    joint_1: 30,
+    joint_2: 30,
+    joint_3: 30,
+    joint_4: 30,
+    joint_5: 30,
+    joint_6: 30,
+    move: false
+  };  // TODO
 
   constructor() { }
 
@@ -48,6 +58,7 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     this.createScene();
     this.animate();
     this.createControls();
+    this.createPanel();
   }
 
   ngOnInit(): void {
@@ -86,6 +97,24 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     this.controls.enableZoom = true;
     this.controls.enablePan = false;
     this.controls.update();
+  }
+
+  createPanel(): void {
+    let gui = new GUI();
+    let panelFolder = gui.addFolder('Control Panel');
+    panelFolder.add(this.posTarget, 'joint_1', 0, 360);
+    panelFolder.add(this.posTarget, 'joint_2', 0, 360);
+    panelFolder.add(this.posTarget, 'joint_3', 0, 360);
+    panelFolder.add(this.posTarget, 'joint_4', 0, 360);
+    panelFolder.add(this.posTarget, 'joint_5', 0, 360);
+    panelFolder.add(this.posTarget, 'joint_6', 0, 360);
+
+    let buttonFunc = { goToPosition: () => {
+      this.setToPosition()
+    }};
+    panelFolder.add(buttonFunc, 'goToPosition').name('Go To Position');
+
+    panelFolder.open();
   }
 
   private initCamera(): void {
@@ -156,7 +185,9 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
       }
     }
 
-    this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(target, duration).easing(TWEEN.Easing.Quadratic.Out);
+    //this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(target, duration).easing(TWEEN.Easing.Quadratic.Out);
+    this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(this.posTarget, duration).easing(TWEEN.Easing.Quadratic.Out);
+
     this.kinematicsTween.onUpdate((obj) => {
       for (let prop in this.kinematics.joints) {
         if (this.kinematics.joints.hasOwnProperty(prop)) {
@@ -166,7 +197,7 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
         }
       }
     });
-    this.kinematicsTween.start();
+    //this.kinematicsTween.start();
     setTimeout(() => {this.setupTween()}, duration);
   }
 
@@ -175,6 +206,10 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     this.camera.aspect = aspect;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
+  setToPosition(): void {
+    this.kinematicsTween.start();
   }
 
 }
