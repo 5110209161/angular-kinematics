@@ -9,19 +9,24 @@ import { LayoutComponent } from './layout/layout.component';
 
 import { SliderModule } from 'primeng/slider';
 import { FormsModule } from '@angular/forms';
+import { FlexLayoutModule } from '@angular/flex-layout';
+
+import {ButtonModule} from 'primeng/button';
 
 @NgModule({
   declarations: [
     AppComponent,
     CollaRobotComponent,
-    LayoutComponent
+    LayoutComponent,
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
     BrowserAnimationsModule,
+    FlexLayoutModule,
     FormsModule,
-    SliderModule
+    SliderModule,
+    ButtonModule
   ],
   providers: [],
   bootstrap: [AppComponent]

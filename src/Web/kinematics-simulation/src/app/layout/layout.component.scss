@@ -1,0 +1,51 @@
+.content {
+  background-color: black;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: row;
+  font-family: "Times New Roman", Times, serif;
+  font-weight: normal;
+  color: lightskyblue;
+}
+
+.state-block {
+  flex: 1 1 100%;
+  max-width: 20%;
+  flex-direction: column;
+}
+
+.robot-block {
+  flex: 1 1 100%;
+}
+
+.panel-block {
+  flex: 1 1 100%;
+  max-width: 20%;
+}
+
+.state-block-title {
+  display: flex;
+  justify-content: center;
+  margin-top: 3em;
+  margin-bottom: 1em;
+  font-weight: bold;
+}
+
+.state-log-block {
+  margin: 1em;
+  padding: 0.5em;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 0.5em;
+}
+
+.button-group {
+  margin-top: 3em;
+  margin-bottom: 1em;
+}
+
+.button-small {
+  height: 25px;
+  width: 80px;
+}

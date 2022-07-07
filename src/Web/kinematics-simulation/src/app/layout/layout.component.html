@@ -1,2 +1,119 @@
-<h5>Basic: {{val}}</h5>
-<p-slider [(ngModel)]="val"></p-slider>
+<div class="content">
+  <div class="state-block">
+    <div>
+      <div class="state-block-title">Running State</div>
+      <div fxLayout="row" fxLayoutGap="1em" style="margin: 0em 1em;">
+        <div fxLayout="column" fxFlex="40">
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>S1</strong>
+            <div>12345</div>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>S2</strong>
+            <div>123</div>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>S3</strong>
+            <div>12345</div>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>S4</strong>
+            <div>123</div>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>S5</strong>
+            <div>12345</div>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>S6</strong>
+            <div>123</div>
+          </div>
+        </div>
+
+        <div fxLayout="column" fxFlex="40">
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>&#952;1</strong> <!--https://www.cnblogs.com/knowledgesea/archive/2013/07/24/3210703.html-->
+            <div>22&#176;</div>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>&#952;2</strong>
+            <div>123&#176;</div>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>&#952;3</strong>
+            <div>-36&#176;</div>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>&#952;4</strong>
+            <div>12&#176;</div>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>&#952;5</strong>
+            <div>-45&#176;</div>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>&#952;6</strong>
+            <div>123&#176;</div>
+          </div>
+        </div>
+
+        <div fxLayout="column" fxFlex="40">
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>X</strong>
+            <div>22mm</div>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>Y</strong>
+            <div>123mm</div>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>Z</strong>
+            <div>67mm</div>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>A</strong>
+            <div>123&#8243;</div>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>B</strong>
+            <div>12345&#8243;</div>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between">
+            <strong>C</strong>
+            <div>123&#8243;</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="state-log-block">
+      <h4 style="margin: 0.5em 0em;">Logs</h4>
+      2022-07-07 14:47:35 Joint position exceed the limit. <br/>
+      2022-07-07 14:46:27 Joint position exceed the limit. <br/>
+      2022-07-07 14:44:55 Joint position exceed the limit. <br/>
+      2022-07-07 14:42:14 Joint position exceed the limit. <br/>
+    </div>
+  </div>
+  <div class="robot-block">
+    
+  </div>
+
+  <div class="panel-block">
+    <div fxLayout="column" fxLayoutGap="0.5em" class="button-group">
+      <div fxLayout="row" fxLayoutGap="0.5em">
+        <button pButton type="button" label="MOVE" class="p-button-sm button-small"></button>
+        <button pButton type="button" label="ZERO" class="p-button-sm button-small"></button>
+        <button pButton type="button" label="STOP" class="p-button-sm button-small"></button>
+      </div>
+      <div fxLayout="row" fxLayoutGap="0.5em">
+        <button pButton type="button" label="MoveA" class="p-button-sm button-small"></button>
+        <button pButton type="button" label="MoveB" class="p-button-sm button-small"></button>
+        <button pButton type="button" label="MoveC" class="p-button-sm button-small"></button>
+      </div>
+      <div fxLayout="row" fxLayoutGap="0.5em">
+        <button pButton type="button" label="POINT" class="p-button-sm button-small"></button>
+        <button pButton type="button" label="LINE" class="p-button-sm button-small"></button>
+        <button pButton type="button" label="SPHERE" class="p-button-sm button-small"></button>
+      </div>
+    </div>
+  </div>
+</div> 
