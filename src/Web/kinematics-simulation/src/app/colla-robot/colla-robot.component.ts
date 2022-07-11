@@ -6,6 +6,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import * as TWEEN from '@tweenjs/tween.js';
 import * as THREE from 'three';
 import { GUI } from 'dat.gui';
+import { Pane } from 'tweakpane';
 
 @Component({
   selector: 'app-colla-robot',
@@ -51,6 +52,12 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     joint_6: 30,
     move: false
   };  // TODO
+
+  pane: Pane;
+  modelParams = {
+    File: '',
+  };
+  resourcePath: string;
 
   constructor() { }
 
@@ -99,23 +106,23 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     this.controls.update();
   }
 
-  createPanel(): void {
-    let gui = new GUI();
-    let panelFolder = gui.addFolder('Control Panel');
-    panelFolder.add(this.posTarget, 'joint_1', 0, 360);
-    panelFolder.add(this.posTarget, 'joint_2', 0, 360);
-    panelFolder.add(this.posTarget, 'joint_3', 0, 360);
-    panelFolder.add(this.posTarget, 'joint_4', 0, 360);
-    panelFolder.add(this.posTarget, 'joint_5', 0, 360);
-    panelFolder.add(this.posTarget, 'joint_6', 0, 360);
+  // createPanel(): void {
+  //   let gui = new GUI();
+  //   let panelFolder = gui.addFolder('Control Panel');
+  //   panelFolder.add(this.posTarget, 'joint_1', 0, 360);
+  //   panelFolder.add(this.posTarget, 'joint_2', 0, 360);
+  //   panelFolder.add(this.posTarget, 'joint_3', 0, 360);
+  //   panelFolder.add(this.posTarget, 'joint_4', 0, 360);
+  //   panelFolder.add(this.posTarget, 'joint_5', 0, 360);
+  //   panelFolder.add(this.posTarget, 'joint_6', 0, 360);
 
-    let buttonFunc = { goToPosition: () => {
-      this.setToPosition()
-    }};
-    panelFolder.add(buttonFunc, 'goToPosition').name('Go To Position');
+  //   let buttonFunc = { goToPosition: () => {
+  //     this.setToPosition()
+  //   }};
+  //   panelFolder.add(buttonFunc, 'goToPosition').name('Go To Position');
 
-    panelFolder.open();
-  }
+  //   panelFolder.open();
+  // }
 
   private initCamera(): void {
     let aspect = this.getAspectRatio();
@@ -210,6 +217,38 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
 
   setToPosition(): void {
     this.kinematicsTween.start();
+  }
+
+  createPanel(): void {
+    this.pane = new Pane();
+
+    // Tabs
+    const tabs = this.pane.addTab({
+      pages: [
+        { title: 'Model' },
+        { title: 'Control' }
+      ]
+    });
+
+    // Load Model
+    tabs.pages[0].addInput(this.modelParams, 'File', { disabled: true });
+
+    let btnOpen = tabs.pages[0].addButton({ title: 'Open' });
+    btnOpen.on('click', () => {
+      document.getElementById('upload-dae-file').click();
+    });
+
+    let btnLoad = tabs.pages[0].addButton({ title: 'Load' });
+    let btnReset = tabs.pages[0].addButton({ title: 'Reset' });
+  }
+
+  addDaeAttachment(fileInput: any): void {
+    let fileRead = fileInput.target.files[0];
+    this.resourcePath = fileInput.target.value;
+
+    let daeFileName = fileRead ? fileRead.name : 'Invalid file!';
+    this.modelParams.File = daeFileName;
+    this.pane.refresh();
   }
 
 }
