@@ -29,6 +29,7 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
   /** model */
   private collaLoader = new ColladaLoader();
   private model: any;
+  private modeIdList = [];
   private scaleSize: number = 6;
   private kinematics;
   private kinematicsTween;
@@ -40,7 +41,10 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
   private farClippingPane: number = 2000;
 
   /** grid */
-  private showGrid: boolean = true;
+  private grid = new THREE.GridHelper(20, 20, 0x888888, 0x444444);
+
+  /** helper */
+  private axesHelper = new THREE.AxesHelper(10);
 
   /** target control */
   private posTarget = {
@@ -85,14 +89,12 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
 
     this.scene = new THREE.Scene();
-    //this.scene.background = new THREE.Color(0xd4d4d8);
 
-    let axesHelper = new THREE.AxesHelper(10);
-    this.scene.add(axesHelper);
+    this.scene.add(this.axesHelper);
     
     this.initCamera();
-    this.initGrid();
     this.initLight();
+    this.initGrid();
 
     //window.addEventListener('resize', this.onWindowResize, false)
   }
@@ -123,7 +125,7 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
       ]
     });
 
-    // Load Model
+    // Model Tab
     tabs.pages[0].addInput(this.modelParams, 'modelName', { disabled: true, label: 'File' });
 
     let btnOpen = tabs.pages[0].addButton({ title: 'Open' });
@@ -135,6 +137,59 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     btnReset.on('click', () => {
       this.onResetBtnClicked();
     });
+
+    let settingFolder = tabs.pages[0].addFolder({title: 'Settings', expanded: false});
+    const settingParams = {
+      showAxis: true,
+      showGrid: true,
+      backGround: 0x000000,
+      position: {x: 0, y: 0},
+    };
+    let btnShowAxis = settingFolder.addInput(settingParams, 'showAxis', {label: 'ShowAxis'});
+    btnShowAxis.on('change', (checked) => {
+      if (checked.value) {
+        this.scene.add(this.axesHelper)
+      } else {
+        this.scene.remove(this.axesHelper);
+      }
+    });
+    
+    let btnShowGrid = settingFolder.addInput(settingParams, 'showGrid', {label: 'ShowGrid'});
+    btnShowGrid.on('change', (checked) => {
+      if (checked.value) {
+        this.scene.add(this.grid);
+      } else {
+        this.scene.remove(this.grid);
+      }
+    });
+
+    let bgCollorPicker = settingFolder.addInput(settingParams, 'backGround', {label: 'Background', view: 'color'});
+    bgCollorPicker.on('change', (color) => {
+      //let colorHex = '0x' + color.value.toString(16);
+      this.scene.background = new THREE.Color(color.value);
+    });
+
+    let posPicker = settingFolder.addInput(settingParams, 'position', {
+      picker: 'inline',
+      expanded: true,
+      x: {step: 0.1, min: -10, max: 10},
+      y: {step: 0.1, min: -10, max: 10}
+    });
+    posPicker.on('change', (pos) => {
+      let x = pos.value.x;
+      let y = pos.value.y;
+      if (this.model) {
+        // model is not null
+        if (this.scene.children.find(item => item.uuid === this.model.uuid)) {
+          // model is loaded
+          this.model.position.set(x, 0, y);
+        }
+      }
+    })
+  }
+
+  private toColor(num: number) {
+
   }
 
   /** Open file explore and load DAE file */
@@ -178,6 +233,14 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
 
   /** Init DAE model and add it into scene */
   private initModel(modelPath: string, scaleSize: number = 1): void {
+    // load only one model at a time
+    this.modeIdList.forEach(modelId => {
+      let modelLoaded = this.scene.children.find(obj => obj.uuid === modelId);
+      if (modelLoaded) {
+        this.scene.remove(modelLoaded);
+      }
+    });
+
     this.collaLoader.load(modelPath, (collada: Collada) => {
       this.model = collada.scene;
       this.model.traverse((child) => {
@@ -188,8 +251,10 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
       this.model.scale.x = scaleSize;
       this.model.scale.y = scaleSize;
       this.model.scale.z = scaleSize;
-
+      
+      let modelId = this.model.uuid;
       this.scene.add(this.model);
+      this.modeIdList.push(modelId);
 
       this.kinematics = collada.kinematics;
       this.setupTween();
@@ -216,22 +281,17 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     return this.canvas.clientWidth / this.canvas.clientHeight;
   }
 
-  /** Add grid into scene */
-  private initGrid(): void {
-    let grid = new THREE.GridHelper(20, 20, 0x888888, 0x444444);
-    if (this.showGrid) {
-      this.scene.add(grid);
-    } else {
-      this.scene.remove(grid);
-    }
-  }
-
   /** Add light into scene */
   private initLight(): void {
     let hemisohereLight = new THREE.HemisphereLight(0xffeeee, 0x111122);
     this.scene.add(hemisohereLight);
     let ambientLight = new THREE.AmbientLight(0x00000, 100);
     this.scene.add(ambientLight);
+  }
+
+  /** Add grid into scene */
+  private initGrid(): void {
+    this.scene.add(this.grid);
   }
 
   /** Setup tween */
