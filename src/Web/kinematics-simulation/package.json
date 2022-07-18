@@ -37,7 +37,7 @@
     "@tweakpane/core": "^1.1.0",
     "@types/dat.gui": "^0.7.7",
     "@types/jasmine": "~3.10.0",
-    "@types/node": "^12.11.1",
+    "@types/node": "^12.20.55",
     "dat.gui": "^0.7.9",
     "jasmine-core": "~4.0.0",
     "karma": "~6.3.0",

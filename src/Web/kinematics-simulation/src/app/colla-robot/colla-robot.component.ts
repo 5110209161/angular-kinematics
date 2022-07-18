@@ -5,7 +5,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 import * as TWEEN from '@tweenjs/tween.js';
 import * as THREE from 'three';
-import { GUI } from 'dat.gui';
 import { Pane } from 'tweakpane';
 
 @Component({
@@ -30,6 +29,7 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
   /** model */
   private collaLoader = new ColladaLoader();
   private model: any;
+  private scaleSize: number = 6;
   private kinematics;
   private kinematicsTween;
   private tweenParameters = {};
@@ -55,9 +55,8 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
 
   pane: Pane;
   modelParams = {
-    File: '',
+    modelName: '',
   };
-  resourcePath: string;
 
   constructor() { }
 
@@ -71,6 +70,14 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
   }
 
+  /** Rendering loop */
+  animate(): void {
+    requestAnimationFrame(() => {this.animate()});
+    this.renderer.render(this.scene, this.camera);
+    TWEEN.update();
+  }
+
+  /** Create scene */
   createScene(): void {
     this.renderer = new THREE.WebGLRenderer({canvas: this.canvas, antialias: true});
     this.renderer.outputEncoding = THREE.sRGBEncoding;
@@ -79,20 +86,18 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
 
     this.scene = new THREE.Scene();
     //this.scene.background = new THREE.Color(0xd4d4d8);
+
+    let axesHelper = new THREE.AxesHelper(10);
+    this.scene.add(axesHelper);
     
     this.initCamera();
-    this.initModel();
     this.initGrid();
     this.initLight();
-    //window.addEventListener('resize', this.onWindowResize)
+
+    //window.addEventListener('resize', this.onWindowResize, false)
   }
 
-  animate(): void {
-    requestAnimationFrame(() => {this.animate()});
-    this.renderer.render(this.scene, this.camera);
-    TWEEN.update();
-  }
-
+  /** Create orbit control */
   createControls(): void {
     let renderer = new CSS2DRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -106,24 +111,92 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     this.controls.update();
   }
 
-  // createPanel(): void {
-  //   let gui = new GUI();
-  //   let panelFolder = gui.addFolder('Control Panel');
-  //   panelFolder.add(this.posTarget, 'joint_1', 0, 360);
-  //   panelFolder.add(this.posTarget, 'joint_2', 0, 360);
-  //   panelFolder.add(this.posTarget, 'joint_3', 0, 360);
-  //   panelFolder.add(this.posTarget, 'joint_4', 0, 360);
-  //   panelFolder.add(this.posTarget, 'joint_5', 0, 360);
-  //   panelFolder.add(this.posTarget, 'joint_6', 0, 360);
+  /** Create control panel */
+  createPanel(): void {
+    this.pane = new Pane();
 
-  //   let buttonFunc = { goToPosition: () => {
-  //     this.setToPosition()
-  //   }};
-  //   panelFolder.add(buttonFunc, 'goToPosition').name('Go To Position');
+    // Tabs
+    const tabs = this.pane.addTab({
+      pages: [
+        { title: 'Model' },
+        { title: 'Control' }
+      ]
+    });
 
-  //   panelFolder.open();
-  // }
+    // Load Model
+    tabs.pages[0].addInput(this.modelParams, 'modelName', { disabled: true, label: 'File' });
 
+    let btnOpen = tabs.pages[0].addButton({ title: 'Open' });
+    btnOpen.on('click', () => {
+      document.getElementById('upload-dae-file').click();
+    });
+
+    let btnReset = tabs.pages[0].addButton({ title: 'Reset' });
+    btnReset.on('click', () => {
+      this.onResetBtnClicked();
+    });
+  }
+
+  /** Open file explore and load DAE file */
+  addDaeAttachment(fileInput: any): void {
+    let fileRead = fileInput.target.files[0];
+    // update file name to input box
+    let daeFileName = fileRead ? fileRead.name : 'Invalid file!';
+    this.modelParams.modelName = daeFileName;
+    this.pane.refresh();
+    
+    let extraFiles = {};
+    let files = fileInput.currentTarget.files;
+    for (let i = 0; i < files.length; i++) {
+      let file = files[i];
+      if (files[i].name.match(/\w*.dae\b/i)) {
+        extraFiles[file.name] = file;
+      }
+    }
+
+    const loadingManager = new THREE.LoadingManager();
+    loadingManager.setURLModifier((url) => {
+      let urlList = url.split('/');
+      url = urlList[urlList.length - 1];
+
+      if (extraFiles[url] !== undefined) {
+        let blobUrl = URL.createObjectURL(extraFiles[url]);
+        return blobUrl;
+      }
+      return url;
+    });
+    this.collaLoader = new ColladaLoader(loadingManager);
+    this.initModel(daeFileName, this.scaleSize);
+  }
+
+  private onWindowResize() {
+    let aspect = this.getAspectRatio();
+    this.camera.aspect = aspect;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
+  /** Init DAE model and add it into scene */
+  private initModel(modelPath: string, scaleSize: number = 1): void {
+    this.collaLoader.load(modelPath, (collada: Collada) => {
+      this.model = collada.scene;
+      this.model.traverse((child) => {
+        if (child.isMesh) {
+          child.material.flatShading = true;
+        }
+      });
+      this.model.scale.x = scaleSize;
+      this.model.scale.y = scaleSize;
+      this.model.scale.z = scaleSize;
+
+      this.scene.add(this.model);
+
+      this.kinematics = collada.kinematics;
+      this.setupTween();
+    });
+  }
+
+  /** Init settings of camera */
   private initCamera(): void {
     let aspect = this.getAspectRatio();
     this.camera = new THREE.PerspectiveCamera(
@@ -133,14 +206,17 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
       this.farClippingPane
     );
     this.camera.position.set(10, 10, 15);
+    this.camera.lookAt(this.scene.position);
 
     this.scene.add(this.camera);
   }
 
+  /** Get the aspect ratio of the rendering window */
   private getAspectRatio(): number {
     return this.canvas.clientWidth / this.canvas.clientHeight;
   }
 
+  /** Add grid into scene */
   private initGrid(): void {
     let grid = new THREE.GridHelper(20, 20, 0x888888, 0x444444);
     if (this.showGrid) {
@@ -150,6 +226,7 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     }
   }
 
+  /** Add light into scene */
   private initLight(): void {
     let hemisohereLight = new THREE.HemisphereLight(0xffeeee, 0x111122);
     this.scene.add(hemisohereLight);
@@ -157,25 +234,7 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     this.scene.add(ambientLight);
   }
 
-  private initModel(): void {
-    this.collaLoader.load('assets/collada/abb_irb52_7_120.dae', (collada: Collada) => {
-      this.model = collada.scene;
-      this.model.traverse((child) => {
-        if (child.isMesh) {
-          child.material.flatShading = true;
-        }
-      });
-      this.model.scale.x = 6;
-      this.model.scale.y = 6;
-      this.model.scale.z = 6;
-
-      this.scene.add(this.model);
-
-      this.kinematics = collada.kinematics;
-      this.setupTween();
-    });
-  }
-
+  /** Setup tween */
   private setupTween(): void {
     let duration = THREE.MathUtils.randInt(1000, 5000);
     let target = {};
@@ -192,8 +251,8 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
       }
     }
 
-    //this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(target, duration).easing(TWEEN.Easing.Quadratic.Out);
-    this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(this.posTarget, duration).easing(TWEEN.Easing.Quadratic.Out);
+    this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(target, duration).easing(TWEEN.Easing.Quadratic.Out);
+    //this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(this.posTarget, duration).easing(TWEEN.Easing.Quadratic.Out);
 
     this.kinematicsTween.onUpdate((obj) => {
       for (let prop in this.kinematics.joints) {
@@ -204,51 +263,19 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
         }
       }
     });
-    //this.kinematicsTween.start();
+    this.kinematicsTween.start();
     setTimeout(() => {this.setupTween()}, duration);
   }
 
-  private onWindowResize() {
-    let aspect = this.getAspectRatio();
-    this.camera.aspect = aspect;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+  /** Reset button click event, to remove loaded model */
+  onResetBtnClicked(): void {
+    this.scene.remove(this.model);
+    this.modelParams.modelName = '';
+    this.pane.refresh();
   }
 
   setToPosition(): void {
     this.kinematicsTween.start();
-  }
-
-  createPanel(): void {
-    this.pane = new Pane();
-
-    // Tabs
-    const tabs = this.pane.addTab({
-      pages: [
-        { title: 'Model' },
-        { title: 'Control' }
-      ]
-    });
-
-    // Load Model
-    tabs.pages[0].addInput(this.modelParams, 'File', { disabled: true });
-
-    let btnOpen = tabs.pages[0].addButton({ title: 'Open' });
-    btnOpen.on('click', () => {
-      document.getElementById('upload-dae-file').click();
-    });
-
-    let btnLoad = tabs.pages[0].addButton({ title: 'Load' });
-    let btnReset = tabs.pages[0].addButton({ title: 'Reset' });
-  }
-
-  addDaeAttachment(fileInput: any): void {
-    let fileRead = fileInput.target.files[0];
-    this.resourcePath = fileInput.target.value;
-
-    let daeFileName = fileRead ? fileRead.name : 'Invalid file!';
-    this.modelParams.File = daeFileName;
-    this.pane.refresh();
   }
 
 }
