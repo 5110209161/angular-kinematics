@@ -5,7 +5,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 import * as TWEEN from '@tweenjs/tween.js';
 import * as THREE from 'three';
-import { Pane } from 'tweakpane';
+import { ButtonApi, Pane } from 'tweakpane';
+import * as EssentialsPlugin from '@tweakpane/plugin-essentials';
 
 @Component({
   selector: 'app-colla-robot',
@@ -48,18 +49,27 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
 
   /** target control */
   private posTarget = {
-    joint_1: 30,
-    joint_2: 30,
-    joint_3: 30,
-    joint_4: 30,
-    joint_5: 30,
-    joint_6: 30,
-    move: false
-  };  // TODO
+    joint_1: 0,
+    joint_2: 0,
+    joint_3: 0,
+    joint_4: 0,
+    joint_5: 0,
+    joint_6: 0,
+  };
+  private duration: number = 500;  // ms
 
+  /** panel */
   pane: Pane;
   modelParams = {
     modelName: '',
+    speedRatio: 10,
+    joint1: 0,
+    joint2: 0,
+    joint3: 0,
+    joint4: 0,
+    joint5: 0,
+    joint6: 0,
+    monitorLog: ''
   };
 
   constructor() { }
@@ -116,6 +126,7 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
   /** Create control panel */
   createPanel(): void {
     this.pane = new Pane();
+    this.pane.registerPlugin(EssentialsPlugin);
 
     // Tabs
     const tabs = this.pane.addTab({
@@ -138,12 +149,14 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
       this.onResetBtnClicked();
     });
 
+    tabs.pages[0].addSeparator();
     let settingFolder = tabs.pages[0].addFolder({title: 'Settings', expanded: false});
     const settingParams = {
       showAxis: true,
       showGrid: true,
       backGround: 0x000000,
       position: {x: 0, y: 0},
+      monitor: ''
     };
     let btnShowAxis = settingFolder.addInput(settingParams, 'showAxis', {label: 'ShowAxis'});
     btnShowAxis.on('change', (checked) => {
@@ -185,11 +198,92 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
           this.model.position.set(x, 0, y);
         }
       }
-    })
-  }
+    });
 
-  private toColor(num: number) {
+    // Control Tab
+    let btnCommandGroup = tabs.pages[1].addBlade({
+      view: 'buttongrid',
+      size: [3, 2],
+      cells: (x, y) => ({
+        title: [
+          ['MOVE', 'ZERO', 'STOP'],
+          ['POINT', 'LINE', 'SPHERE']
+        ][y][x],
+      }),
+    }) as ButtonApi;
+    btnCommandGroup.on('click', (obj) => {
+      let cellIndex: Array<number> = obj['index'];
+      switch (cellIndex.toString()) {
+        case '0,0':
+          console.log('MOVE clicked')
+          break;
+        case '1,0':
+          console.log('ZERO clicked');
+          break;
+        case '2,0':
+          console.log('STOP clicked');
+          break;
+        case '0,1':
+          console.log('POINT clicked')
+          break;
+        case '1,1':
+          console.log('LINE clicked');
+          break;
+        case '2,1':
+          console.log('SPHERE clicked');
+          break;
+      }
+    });
 
+    const speedScales = [10, 20, 25, 50, 75, 100];
+    let speedSlider = tabs.pages[1].addInput(this.modelParams, 'speedRatio', {
+      view: 'radiogrid',
+      groupName: 'speedRatio',
+      size: [3, 2],
+      cells: (x, y) => ({
+        title: `${speedScales[y * 3 + x]}%`,
+        value: speedScales[y * 3 + x],
+      }),
+      label: 'SpeedRatio'
+    });
+    speedSlider.on('change', (obj) => {
+      console.log('speedRatio', obj.value)
+    });
+
+    tabs.pages[1].addSeparator();
+    let joint1Pos = tabs.pages[1].addInput(this.modelParams, 'joint1', {min: -180, max: 180});
+    let joint2Pos = tabs.pages[1].addInput(this.modelParams, 'joint2', {min: -180, max: 180});
+    let joint3Pos = tabs.pages[1].addInput(this.modelParams, 'joint3', {min: -180, max: 180});
+    let joint4Pos = tabs.pages[1].addInput(this.modelParams, 'joint4', {min: -180, max: 180});
+    let joint5Pos = tabs.pages[1].addInput(this.modelParams, 'joint5', {min: -180, max: 180});
+    let joint6Pos = tabs.pages[1].addInput(this.modelParams, 'joint6', {min: -180, max: 180});
+    joint1Pos.on('change', (obj) => {
+      this.posTarget.joint_1 = obj.value;  //TODO hard code joint name
+      this.setToPosition();
+    });
+    joint2Pos.on('change', (obj) => {
+      this.posTarget.joint_2 = obj.value;
+      this.setToPosition();
+    });
+    joint3Pos.on('change', (obj) => {
+      this.posTarget.joint_3 = obj.value;
+      this.setToPosition();
+    });
+    joint4Pos.on('change', (obj) => {
+      this.posTarget.joint_4 = obj.value;
+      this.setToPosition();
+    });
+    joint5Pos.on('change', (obj) => {
+      this.posTarget.joint_5 = obj.value;
+      this.setToPosition();
+    });
+    joint6Pos.on('change', (obj) => {
+      this.posTarget.joint_6 = obj.value;
+      this.setToPosition();
+    });
+
+    tabs.pages[1].addSeparator();
+    tabs.pages[1].addMonitor(this.modelParams, 'monitorLog', {multiline: true, lineCount: 10, label: 'Monitor'});
   }
 
   /** Open file explore and load DAE file */
@@ -296,7 +390,6 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
 
   /** Setup tween */
   private setupTween(): void {
-    let duration = THREE.MathUtils.randInt(1000, 5000);
     let target = {};
 
     for (let prop in this.kinematics.joints) {
@@ -311,21 +404,33 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
       }
     }
 
-    this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(target, duration).easing(TWEEN.Easing.Quadratic.Out);
-    //this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(this.posTarget, duration).easing(TWEEN.Easing.Quadratic.Out);
+    //this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(target, duration).easing(TWEEN.Easing.Quadratic.Out);
+    this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(this.posTarget, this.duration).easing(TWEEN.Easing.Quadratic.Out);
 
     this.kinematicsTween.onUpdate((obj) => {
       for (let prop in this.kinematics.joints) {
         if (this.kinematics.joints.hasOwnProperty(prop)) {
           if (!this.kinematics.joints[prop].static) {
             this.kinematics.setJointValue(prop, obj[prop]);
+            this.checkJointLimit(this.kinematics.joints[prop], prop, obj[prop]);
           }
         }
       }
     });
-    this.kinematicsTween.start();
-    setTimeout(() => {this.setupTween()}, duration);
+    //this.kinematicsTween.start();
+    setTimeout(() => {this.setupTween()}, this.duration);
   }
+
+  /** Check joint limit */
+  private checkJointLimit(joint, jointIndex, value): void {
+    if (value > joint.limits.max || value < joint.limits.min) {
+      let warnMes = `Joint: ${jointIndex} value ${value} outside of limits (min: ${joint.limits.min}, max: ${joint.limits.max})\n`;
+      this.modelParams.monitorLog += warnMes;
+      this.pane.refresh();
+    }
+  }
+
+
 
   /** Reset button click event, to remove loaded model */
   onResetBtnClicked(): void {
@@ -334,6 +439,7 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     this.pane.refresh();
   }
 
+  /** Start kinematics tween */
   setToPosition(): void {
     this.kinematicsTween.start();
   }
