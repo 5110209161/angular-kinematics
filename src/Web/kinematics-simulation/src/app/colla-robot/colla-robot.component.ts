@@ -1,12 +1,16 @@
 import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+
 import { Collada, ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-
 import * as TWEEN from '@tweenjs/tween.js';
 import * as THREE from 'three';
 import { ButtonApi, Pane } from 'tweakpane';
 import * as EssentialsPlugin from '@tweakpane/plugin-essentials';
+
+import { SignalRService } from '../services/signalR.service';
+import { environment } from 'src/environments/environment';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-colla-robot',
@@ -72,7 +76,10 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     monitorLog: ''
   };
 
-  constructor() { }
+  constructor(
+    private signalRService: SignalRService,
+    private http: HttpClient
+    ) { }
 
   ngAfterViewInit(): void {
     this.createScene();
@@ -82,7 +89,11 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
+    this.initSignalService();
+    this.startMockJointDataRequest();
   }
+
+//#region Functions of building Three.js scene
 
   /** Rendering loop */
   animate(): void {
@@ -430,18 +441,32 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     }
   }
 
-
-
   /** Reset button click event, to remove loaded model */
-  onResetBtnClicked(): void {
+  private onResetBtnClicked(): void {
     this.scene.remove(this.model);
     this.modelParams.modelName = '';
     this.pane.refresh();
   }
 
   /** Start kinematics tween */
-  setToPosition(): void {
+  private setToPosition(): void {
     this.kinematicsTween.start();
   }
+
+//#endregion
+
+
+//#region Functions of real-time connection via WebSocket
+
+  startMockJointDataRequest(): void {
+    let res = this.http.get(environment.baseWSUrl + '/api/chart').subscribe(res => console.log('res', res));
+  }
+
+  initSignalService(): void {
+    this.signalRService.startConnection(environment.baseWSUrl + '/chart');
+    this.signalRService.addHubListener();
+  }
+
+//#endregion
 
 }
