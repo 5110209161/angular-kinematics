@@ -5,7 +5,7 @@ namespace ConnmunicationHub.Hubs
   /// <summary>
   /// Communication foundation between client and server while using SignalR
   /// </summary>
-  public class ChartHub : Hub
+  public class ChatHub : Hub
   {
 
   }

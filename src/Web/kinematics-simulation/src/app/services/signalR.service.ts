@@ -50,7 +50,7 @@ export class SignalRService {
   }
 
   private getMockedJointPosition(): void  {
-    this.hubConnection.on('MockJointPosition', (data) => {
+    this.hubConnection.on('MockJointPosition', (data: JointsModel) => {
       this.mockedJointPosition = data;
       console.log('mock joint position', data);
     });

@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, DoCheck, ElementRef, OnInit, ViewChild } from '@angular/core';
 
 import { Collada, ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer';
@@ -11,6 +11,7 @@ import * as EssentialsPlugin from '@tweakpane/plugin-essentials';
 import { SignalRService } from '../services/signalR.service';
 import { environment } from 'src/environments/environment';
 import { HttpClient } from '@angular/common/http';
+import { JointsModel } from '../models/JointsModel';
 
 @Component({
   selector: 'app-colla-robot',
@@ -61,6 +62,7 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     joint_6: 0,
   };
   private duration: number = 500;  // ms
+  enableTwin: boolean = false;
 
   /** panel */
   pane: Pane;
@@ -73,7 +75,10 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     joint4: 0,
     joint5: 0,
     joint6: 0,
-    monitorLog: ''
+    jointMonitor: '',
+    ip: '127.0.0.1',
+    port: '8000',
+    twinMonitor: ''
   };
 
   constructor(
@@ -89,8 +94,6 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
-    this.initSignalService();
-    this.startMockJointDataRequest();
   }
 
 //#region Functions of building Three.js scene
@@ -130,7 +133,7 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     this.controls = new OrbitControls(this.camera, renderer.domElement);
     this.controls.autoRotate = true;
     this.controls.enableZoom = true;
-    this.controls.enablePan = false;
+    this.controls.enablePan = true;
     this.controls.update();
   }
 
@@ -143,7 +146,8 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     const tabs = this.pane.addTab({
       pages: [
         { title: 'Model' },
-        { title: 'Control' }
+        { title: 'Control' },
+        { title: 'Twin' }
       ]
     });
 
@@ -294,7 +298,21 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     });
 
     tabs.pages[1].addSeparator();
-    tabs.pages[1].addMonitor(this.modelParams, 'monitorLog', {multiline: true, lineCount: 10, label: 'Monitor'});
+    tabs.pages[1].addMonitor(this.modelParams, 'jointMonitor', {multiline: true, lineCount: 10, label: 'Monitor'});
+
+    // Twin tab
+    tabs.pages[2].addInput(this.modelParams, 'ip', { label: 'IP' });
+    tabs.pages[2].addInput(this.modelParams, 'port', { label: 'Port', view: 'text' });
+
+    let btnConnect = tabs.pages[2].addButton({ title: 'Connect' });
+    btnConnect.on('click', () => {
+      this.onConnectBtnClicked();
+    });
+    let btnDisonnect = tabs.pages[2].addButton({ title: 'Disconnect' });
+    btnDisonnect.on('click', () => {
+      this.onDisconnectBtnClicked();
+    });
+    tabs.pages[2].addMonitor(this.modelParams, 'twinMonitor', {multiline: true, lineCount: 10, label: 'Monitor'});
   }
 
   /** Open file explore and load DAE file */
@@ -415,6 +433,8 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
       }
     }
 
+    this.mapPostionTarget(this.signalRService.mockedJointPosition);
+
     //this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(target, duration).easing(TWEEN.Easing.Quadratic.Out);
     this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(this.posTarget, this.duration).easing(TWEEN.Easing.Quadratic.Out);
 
@@ -428,7 +448,10 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
         }
       }
     });
-    //this.kinematicsTween.start();
+
+    if (this.enableTwin)
+      this.kinematicsTween.start();
+
     setTimeout(() => {this.setupTween()}, this.duration);
   }
 
@@ -436,7 +459,7 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
   private checkJointLimit(joint, jointIndex, value): void {
     if (value > joint.limits.max || value < joint.limits.min) {
       let warnMes = `Joint: ${jointIndex} value ${value} outside of limits (min: ${joint.limits.min}, max: ${joint.limits.max})\n`;
-      this.modelParams.monitorLog += warnMes;
+      this.modelParams.jointMonitor += warnMes;
       this.pane.refresh();
     }
   }
@@ -446,6 +469,31 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     this.scene.remove(this.model);
     this.modelParams.modelName = '';
     this.pane.refresh();
+  }
+
+  /** Connect button click event, to build connection with backend */
+  private onConnectBtnClicked(): void {
+    // start web socket to build long connection
+    this.initSignalService();
+    this.startMockJointDataRequest();
+    // refresh monitor
+    let log = this.getFormattedDatetime(new Date()) + ': ' + 'Connection established!\n';
+    this.modelParams.twinMonitor += log;
+    this.pane.refresh();
+    // enable digital twin
+    this.enableTwin = true;
+  }
+
+  private onDisconnectBtnClicked(): void {
+    // Stop and close connection
+    this.signalRService.stopConnection();
+    this.signalRService.closeConnection();
+    // refresh monitor
+    let log = this.getFormattedDatetime(new Date()) + ': ' + 'Connection interrupted!\n';
+    this.modelParams.twinMonitor += log;
+    this.pane.refresh();
+    // disable digital twin
+    this.enableTwin = false;
   }
 
   /** Start kinematics tween */
@@ -459,12 +507,31 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
 //#region Functions of real-time connection via WebSocket
 
   startMockJointDataRequest(): void {
-    let res = this.http.get(environment.baseWSUrl + '/api/chart').subscribe(res => console.log('res', res));
+    this.http.get(environment.baseWSUrl + '/api/chat').subscribe(res => console.log('res', res));
   }
 
   initSignalService(): void {
-    this.signalRService.startConnection(environment.baseWSUrl + '/chart');
+    this.signalRService.startConnection(environment.baseWSUrl + '/joints');
     this.signalRService.addHubListener();
+  }
+
+//#endregion
+
+//#region helper
+
+  private getFormattedDatetime(date: Date): string {
+    return date.toISOString().replace('T', ' ');
+  }
+
+  private mapPostionTarget(jointTarget: JointsModel): void {
+    if (jointTarget) {
+      this.posTarget.joint_1 = jointTarget.joint1;
+      this.posTarget.joint_2 = jointTarget.joint2;
+      this.posTarget.joint_3 = jointTarget.joint3;
+      this.posTarget.joint_4 = jointTarget.joint4;
+      this.posTarget.joint_5 = jointTarget.joint5;
+      this.posTarget.joint_6 = jointTarget.joint6;
+    }
   }
 
 //#endregion

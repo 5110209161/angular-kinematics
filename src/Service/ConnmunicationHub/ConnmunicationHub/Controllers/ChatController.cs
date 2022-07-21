@@ -7,12 +7,12 @@ namespace ConnmunicationHub.Controllers
 {
   [ApiController]
   [Route("api/[controller]")]
-  public class ChartController : ControllerBase
+  public class ChatController : ControllerBase
   {
-    private readonly IHubContext<ChartHub> _hub;
+    private readonly IHubContext<ChatHub> _hub;
     private readonly TimerManager _timer;
 
-    public ChartController(IHubContext<ChartHub> hub, TimerManager timer)
+    public ChatController(IHubContext<ChatHub> hub, TimerManager timer)
     {
       _hub = hub;
       _timer = timer;

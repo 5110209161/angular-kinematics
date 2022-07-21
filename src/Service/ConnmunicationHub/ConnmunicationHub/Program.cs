@@ -42,6 +42,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapHub<ChartHub>("/chart");
+app.MapHub<ChatHub>("/joints");
 
 app.Run();
