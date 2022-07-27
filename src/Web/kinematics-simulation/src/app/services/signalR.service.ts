@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 
 import * as signalR from '@microsoft/signalr';
-import { JointsModel } from '../models/JointsModel';
+import { JointsModel } from '../models/joints.model';
 
 @Injectable({
   providedIn: 'root'
@@ -12,6 +12,7 @@ export class SignalRService {
   private connectionId: string;
 
   public mockedJointPosition: JointsModel;
+  public mockMessage: string;
 
   constructor() { }
 
@@ -41,6 +42,7 @@ export class SignalRService {
 
   addHubListener(): void {
     this.getMockedJointPosition();
+    this.getTcpJointPosition();
   }
 
   private getConnectionId(): void {
@@ -52,7 +54,12 @@ export class SignalRService {
   private getMockedJointPosition(): void  {
     this.hubConnection.on('MockJointPosition', (data: JointsModel) => {
       this.mockedJointPosition = data;
-      console.log('mock joint position', data);
+    });
+  }
+
+  private getTcpJointPosition(): void  {
+    this.hubConnection.on('TcpJointPosition', (data: string) => {
+      this.mockMessage = data;
     });
   }
 }

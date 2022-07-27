@@ -11,7 +11,8 @@ import * as EssentialsPlugin from '@tweakpane/plugin-essentials';
 import { SignalRService } from '../services/signalR.service';
 import { environment } from 'src/environments/environment';
 import { HttpClient } from '@angular/common/http';
-import { JointsModel } from '../models/JointsModel';
+import { JointsModel } from '../models/joints.model';
+import { TcpEndpointModel } from '../models/tcp-endpoint.model';
 
 @Component({
   selector: 'app-colla-robot',
@@ -301,8 +302,14 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     tabs.pages[1].addMonitor(this.modelParams, 'jointMonitor', {multiline: true, lineCount: 10, label: 'Monitor'});
 
     // Twin tab
-    tabs.pages[2].addInput(this.modelParams, 'ip', { label: 'IP' });
-    tabs.pages[2].addInput(this.modelParams, 'port', { label: 'Port', view: 'text' });
+    let ipInput = tabs.pages[2].addInput(this.modelParams, 'ip', { label: 'IP' });
+    let portInput = tabs.pages[2].addInput(this.modelParams, 'port', { label: 'Port', view: 'text' });
+    ipInput.on('change', (obj) => {
+      this.modelParams.ip = obj.value;
+    });
+    portInput.on('change', (obj) => {
+      this.modelParams.port = obj.value;
+    });
 
     let btnConnect = tabs.pages[2].addButton({ title: 'Connect' });
     btnConnect.on('click', () => {
@@ -434,6 +441,7 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
     }
 
     this.mapPostionTarget(this.signalRService.mockedJointPosition);
+    console.log('mockMessage', this.signalRService.mockMessage);
 
     //this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(target, duration).easing(TWEEN.Easing.Quadratic.Out);
     this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(this.posTarget, this.duration).easing(TWEEN.Easing.Quadratic.Out);
@@ -507,7 +515,11 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
 //#region Functions of real-time connection via WebSocket
 
   startMockJointDataRequest(): void {
-    this.http.get(environment.baseWSUrl + '/api/chat').subscribe(res => console.log('res', res));
+    const reqBody: TcpEndpointModel = {
+      address: this.modelParams.ip,
+      port: parseInt(this.modelParams.port)
+    };
+    this.http.post(environment.baseWSUrl + '/api/chat', reqBody).subscribe(res => console.log('res', res));
   }
 
   initSignalService(): void {

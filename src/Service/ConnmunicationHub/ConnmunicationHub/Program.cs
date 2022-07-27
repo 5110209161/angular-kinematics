@@ -1,4 +1,5 @@
 using ConnmunicationHub.Hubs;
+using ConnmunicationHub.Services;
 using ConnmunicationHub.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,6 +20,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddSignalR();
 
 builder.Services.AddSingleton<TimerManager>();
+
+builder.Services.AddScoped<ITcpChatService, TcpChatService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
