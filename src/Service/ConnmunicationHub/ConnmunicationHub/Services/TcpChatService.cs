@@ -1,10 +1,12 @@
-﻿using ConnmunicationHub.TcpChat;
+﻿using ConnmunicationHub.Models;
+using ConnmunicationHub.TcpChat;
 
 namespace ConnmunicationHub.Services
 {
   public class TcpChatService : ITcpChatService
   {
     public string ReceivedMessage { get; private set; }
+    public Joints JointPosition { get; private set; }
 
     public void ConnectToServer(string address, int port)
     {
@@ -23,22 +25,8 @@ namespace ConnmunicationHub.Services
             client.DisconnectAndStop();
 
           ReceivedMessage = client.ReceivedMessage;
+          JointPosition = client.JointPosition;
         }
-        //try
-        //{
-        //  for (; ; )
-        //  {
-        //    if (client.ReceivedMessage == "quit" || client.ReceivedMessage == "Q")
-        //      client.DisconnectAndStop();
-
-        //    ReceivedMessage = client.ReceivedMessage;
-        //  }
-        //}
-        //catch (Exception e)
-        //{
-        //  Console.WriteLine("Exception: {0}", e);
-        //  client.DisconnectAndStop();
-        //}
       }).Start();
 
     }
@@ -47,6 +35,11 @@ namespace ConnmunicationHub.Services
     {
       Console.WriteLine("received mes: " + ReceivedMessage);
       return ReceivedMessage;
+    }
+
+    public Joints GetJointPosition()
+    {
+      return JointPosition;
     }
   }
 }

@@ -442,6 +442,7 @@ export class CollaRobotComponent implements OnInit, AfterViewInit {
 
     this.mapPostionTarget(this.signalRService.mockedJointPosition);
     console.log('mockMessage', this.signalRService.mockMessage);
+    console.log('jointPosition', this.signalRService.realJointPosition);
 
     //this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(target, duration).easing(TWEEN.Easing.Quadratic.Out);
     this.kinematicsTween = new TWEEN.Tween(this.tweenParameters).to(this.posTarget, this.duration).easing(TWEEN.Easing.Quadratic.Out);

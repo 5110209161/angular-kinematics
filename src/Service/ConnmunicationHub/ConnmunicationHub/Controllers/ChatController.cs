@@ -37,6 +37,9 @@ namespace ConnmunicationHub.Controllers
           // connect to TCP server and send back received data to Web
           var message = _tcpChatService.GetReceivedMessage();
           _hub.Clients.All.SendAsync("TcpJointPosition", message);
+
+          var jointPos = _tcpChatService.GetJointPosition();
+          _hub.Clients.All.SendAsync("RealJointPosition", jointPos);
         });
       return Ok(new { Success = true, Message = "Request Completed" });
     }

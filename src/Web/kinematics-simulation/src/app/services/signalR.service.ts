@@ -13,6 +13,7 @@ export class SignalRService {
 
   public mockedJointPosition: JointsModel;
   public mockMessage: string;
+  public realJointPosition: JointsModel;
 
   constructor() { }
 
@@ -43,6 +44,7 @@ export class SignalRService {
   addHubListener(): void {
     this.getMockedJointPosition();
     this.getTcpJointPosition();
+    this.getJointPosition();
   }
 
   private getConnectionId(): void {
@@ -60,6 +62,12 @@ export class SignalRService {
   private getTcpJointPosition(): void  {
     this.hubConnection.on('TcpJointPosition', (data: string) => {
       this.mockMessage = data;
+    });
+  }
+
+  private getJointPosition(): void {
+    this.hubConnection.on('RealJointPosition', (data: JointsModel) => {
+      this.realJointPosition = data;
     });
   }
 }
